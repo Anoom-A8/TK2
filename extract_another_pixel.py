@@ -78,10 +78,29 @@ for t, (row_y, points), xr, y_scale in zip(frame_times, reversed(final_rows), xr
     data["y_scaled"].append(", ".join(map(str, y_scaled)))
 
 df = pd.DataFrame(data)
-
 output_csv_path = "final_scaled_track_coordinates_t_540_with_fixed_rows.csv"
 df.to_csv(output_csv_path, index=False)
 print(f"Formatted data saved to {output_csv_path}")
+
+dx_data = {"t": [], "k": [], "(x_{px})_{k-1}": [], "(x_{px})_k": [], "x_r((y_{px})_t)": [], "d_x": []}
+
+for t, (row_y, points), xr in zip(frame_times, reversed(final_rows), xr_values):
+    x_coords = [p[0] for p in points]
+    for k in range(1, len(x_coords)):
+        x_prev = x_coords[k - 1]
+        x_curr = x_coords[k]
+        dx = (2.5 / xr) * (x_curr - x_prev)
+        dx_data["t"].append(t)
+        dx_data["k"].append(k)
+        dx_data["(x_{px})_{k-1}"].append(x_prev)
+        dx_data["(x_{px})_k"].append(x_curr)
+        dx_data["x_r((y_{px})_t)"].append(xr)
+        dx_data["d_x"].append(dx)
+
+dx_df = pd.DataFrame(dx_data)
+dx_output_csv_path = "dx_calculations_with_t_60_to_t_540.csv"
+dx_df.to_csv(dx_output_csv_path, index=False)
+print(f"dx calculations with t saved to {dx_output_csv_path}")
 
 for coord in coordinates:
     cv2.circle(image, coord, 5, (0, 255, 0), -1)
