@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load the image
-image_path = "image_data_scraping2.png"  # Replace with your image file path
+image_path = "image_data_scraping3.png"  # Replace with your image file path
 image = cv2.imread(image_path)
 
 # Convert to HSV and mask for purple
@@ -35,32 +35,28 @@ frame_times = [0, 60, 120, 180, 240, 300, 360, 420, 480, 540]
 xr_values = [317, 143, 88, 65, 50, 41, 35, 29, 27, 25]  # Scaling factors (px/m)
 y_real = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45]  # Real-world vertical distances (m)
 
-# Calculate real-world coordinates (xt, yt)
-data = {"t": [], "xt": [], "yt": []}
+# Organize raw pixel data for each frame
+raw_pixel_data = {"t": [], "xpx": [], "ypx": []}
+
+# Group coordinates by frame
+coordinates_per_frame = len(coordinates) // len(frame_times)
 index = 0
-for t, xr, y in zip(frame_times, xr_values, y_real):
-    for i in range(len(coordinates) // len(frame_times)):  # Divide evenly among frames
-        if index + 1 < len(coordinates):
-            xpx_curr, ypx_curr = coordinates[index]
-            xpx_next, ypx_next = coordinates[index + 1]
-
-            # Calculate dx using the formula provided
-            dx = (2.5 / xr) * abs(xpx_next - xpx_curr)
-
-            # Append to the data table
-            data["t"].append(t)
-            data["xt"].append(dx)  # Horizontal distance
-            data["yt"].append(y)   # Vertical distance
-
+for t in frame_times:
+    for i in range(coordinates_per_frame):
+        if index < len(coordinates):
+            cx, cy = coordinates[index]
+            raw_pixel_data["t"].append(t)
+            raw_pixel_data["xpx"].append(cx)
+            raw_pixel_data["ypx"].append(cy)
             index += 1
 
-# Create a DataFrame
-df = pd.DataFrame(data)
+# Save raw pixel data to a DataFrame
+raw_pixel_df = pd.DataFrame(raw_pixel_data)
 
-# Save to CSV
-output_csv_path = "scaled_track_coordinates_no_car.csv"
-df.to_csv(output_csv_path, index=False)
-print(f"Data saved to {output_csv_path}")
+# Save raw pixel coordinates to CSV
+raw_pixel_output_path = "raw_pixel_coordinates.csv"
+raw_pixel_df.to_csv(raw_pixel_output_path, index=False)
+print(f"Raw pixel data saved to {raw_pixel_output_path}")
 
 # Visualize the points (excluding car)
 for coord in coordinates:
