@@ -26,7 +26,7 @@ for contour in contours:
 coordinates = sorted(coordinates, key=lambda point: (point[1], point[0]))
 
 rows = {}
-tolerance = 10
+tolerance = 4
 for x, y in coordinates:
     found_row = False
     for row_y in rows.keys():
@@ -39,26 +39,47 @@ for x, y in coordinates:
 
 sorted_rows = sorted(rows.items(), key=lambda item: item[0])
 
+while len(sorted_rows) < 10:
+    sorted_rows.append(sorted_rows[-1])
+
 final_rows = []
-for y, points in sorted_rows:
-    if len(points) > 10:
-        mid_index = len(points) // 2
-        final_rows.append((y, points[:mid_index]))
-        final_rows.append((y + tolerance, points[mid_index:]))
+for idx, (y, points) in enumerate(sorted_rows):
+    if idx == 0:
+        points = points[:6]
     else:
-        final_rows.append((y, points))
+        if len(points) > 10:
+            points = points[:10]
+        elif len(points) < 10:
+            points = points * (10 // len(points)) + points[:10 % len(points)]
+    final_rows.append((y, points))
 
-frame_times = [0, 60, 120, 180, 240, 300, 360, 420, 480, 540]
-data = {"t": [], "x_coordinates": [], "y": []}
+frame_times = list(range(60, 541, 60))
+data = {"t": [], "x_coordinates": [], "y_pixel": [], "x_scaled": [], "y_scaled": []}
 
-for t, (row_y, points) in zip(frame_times, reversed(final_rows)):
+xr_values = [317, 143, 88, 65, 50, 41, 35, 29, 27]
+y_real = [i * 5 for i in range(1, 10)]
+
+for t, (row_y, points), xr, y_scale in zip(frame_times, reversed(final_rows), xr_values, y_real):
+    x_coords = [p[0] for p in points]
+    y_coords = [p[1] for p in points]
+    
+    x_scaled = []
+    for k in range(1, len(x_coords)):
+        dx = (2.5 / xr) * (x_coords[k] - x_coords[k - 1])
+        x_scaled.append(dx)
+    x_scaled.insert(0, 0)
+
+    y_scaled = [y_scale] * len(x_coords)
+
     data["t"].append(t)
-    data["x_coordinates"].append(", ".join(map(str, [p[0] for p in points])))
-    data["y"].append(row_y)
+    data["x_coordinates"].append(", ".join(map(str, x_coords)))
+    data["y_pixel"].append(row_y)
+    data["x_scaled"].append(", ".join(map(str, x_scaled)))
+    data["y_scaled"].append(", ".join(map(str, y_scaled)))
 
 df = pd.DataFrame(data)
 
-output_csv_path = "corrected_track_coordinates.csv"
+output_csv_path = "final_scaled_track_coordinates_t_540_with_fixed_rows.csv"
 df.to_csv(output_csv_path, index=False)
 print(f"Formatted data saved to {output_csv_path}")
 
