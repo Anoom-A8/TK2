@@ -1,6 +1,6 @@
 import time
 import matplotlib.pyplot as plt
-from log_loss import log_loss_y1
+from log_loss import log_loss_y1, log_loss_y0
 from simpsons_method import composite_simpson
 from adaptive_method import adaptive_quadrature
 from romberg_method import romberg_integration
@@ -86,6 +86,82 @@ def visualize_results(simpson_results, simpson_times, adaptive_result, adaptive_
     plt.tight_layout()
     plt.show()
 
+# y0 functions
+def run_composite_simpson_y0():
+    print("\nComposite Simpson's Rule with y0 Results:")
+    print(f"{'N (Subdivisions)':<20}{'Result':<15}{'Time (s)':<10}")
+    print("-" * 45)
+    results = []
+    times = []
+    for N in N_values:
+        start = time.perf_counter()
+        result = composite_simpson(log_loss_y0, a, b, N)
+        end = time.perf_counter()
+        results.append(result)
+        times.append(end - start)
+        print(f"{N:<20}{result:<15.6f}{(end - start):.8f}")
+    return results, times
+
+def run_adaptive_quadrature_y0():
+    print("\nAdaptive Quadrature with y0 Results:")
+    print(f"{'Tolerance':<15}{'Result':<15}{'Time (s)':<10}")
+    print("-" * 40)
+    start = time.perf_counter()
+    result = adaptive_quadrature(log_loss_y0, a, b, tol=tolerance)
+    end = time.perf_counter()
+    computation_time = end - start
+    print(f"{tolerance:<15}{result:<15.6f}{computation_time:.8f}")
+    return result, computation_time
+
+def run_romberg_experiments_y0():
+    print("\nRomberg Integration with y0 Results:")
+    print(f"{'m (Levels)':<12}{'N (Subdivisions)':<20}{'Result':<15}{'Time (s)':<10}")
+    print("-" * 55)
+    results = []
+    times = []
+    for m in m_values:
+        start = time.perf_counter()
+        result = romberg_integration(log_loss_y0, a, b, max_levels=m)
+        end = time.perf_counter()
+        
+        # Number of subdivisions is 2^(m-1)
+        N = 2**(m - 1)
+        computation_time = end - start
+
+        results.append(result)
+        times.append(computation_time)
+        print(f"{m:<12}{N:<20}{result:<15.6f}{computation_time:.8f}")
+    return results, times
+
+def visualize_results_y0(simpson_results_y0, simpson_times_y0, adaptive_result_y0, adaptive_time_y0, romberg_results_y0, romberg_times_y0):
+    # Visualization
+    plt.figure(figsize=(15, 8))
+
+    # Accuracy Plot
+    plt.subplot(2, 1, 1)
+    plt.plot(N_values, simpson_results_y0, marker='o', label="Composite Simpson")
+    plt.axhline(adaptive_result_y0, color='g', linestyle='--', label="Adaptive Quadrature")
+    plt.plot(m_values, romberg_results_y0, marker='s', label="Romberg Integration")
+    plt.xlabel("Subdivisions (N) / Levels (m)")
+    plt.ylabel("Integral Value")
+    plt.title("Integral Results Comparison")
+    plt.legend()
+    plt.grid()
+
+    # Computation Time Plot
+    plt.subplot(2, 1, 2)
+    plt.plot(N_values, simpson_times_y0, marker='o', label="Composite Simpson")
+    plt.bar(["Adaptive Quadrature"], [adaptive_time_y0], color='g', label="Adaptive Quadrature")
+    plt.plot(m_values, romberg_times_y0, marker='s', label="Romberg Integration")
+    plt.xlabel("Subdivisions (N) / Levels (m)")
+    plt.ylabel("Computation Time (seconds)")
+    plt.title("Computation Time Comparison")
+    plt.legend()
+    plt.grid()
+
+    plt.tight_layout()
+    plt.show()
+
 if __name__ == "__main__":
     # Run Composite Simpson
     simpson_results, simpson_times = run_composite_simpson()
@@ -98,3 +174,15 @@ if __name__ == "__main__":
 
     # Visualize All Results
     visualize_results(simpson_results, simpson_times, adaptive_result, adaptive_time, romberg_results, romberg_times)
+
+    # Run Composite Simpson y0
+    simpson_results_y0, simpson_times_y0 = run_composite_simpson_y0()
+
+    # Run Adaptive Quadrature y0
+    adaptive_result_y0, adaptive_time_y0 = run_adaptive_quadrature_y0()
+
+    # Run Romberg Integration y0
+    romberg_results_y0, romberg_times_y0 = run_romberg_experiments_y0()
+
+    # Visualize All Results y0
+    visualize_results(simpson_results_y0, simpson_times_y0, adaptive_result_y0, adaptive_time_y0, romberg_results_y0, romberg_times_y0)
