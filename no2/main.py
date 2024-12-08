@@ -1,84 +1,85 @@
 import time
 import matplotlib.pyplot as plt
-from simpsons_method import simpson_integration
-from adaptive_method import adaptive_integration
-from romberg_method import romberg_integral
-from log_loss import log_loss_y1  # Import the log-loss function for y=1
+from log_loss import log_loss_y1
+from simpsons_method import composite_simpson
+from adaptive_method import adaptive_quadrature
+from romberg_method import romberg_integration
 
-# Integration range and parameters
-start_range, end_range = 0, 10
-tolerance_level = 1e-4  # Tolerance for adaptive quadrature
-simpson_subdivisions = [10, 50, 100, 500, 1000]  # Subdivisions for Simpson's Rule
-romberg_levels = [4, 6, 7, 9, 10]  # Levels for Romberg Integration
+# Define the integration range
+a, b = 0, 10
+tolerance = 1e-4  # For adaptive quadrature
+N_values = [10, 50, 100, 500, 1000]  # Subdivisions for Composite Simpson
+m_values = [4, 6, 7, 9, 10]  # Levels for Romberg Integration
 
-def execute_simpson():
-    print("\nSimpson's Rule Results:")
-    print(f"{'Subdivisions (N)':<20}{'Result':<15}{'Time (s)':<10}")
+def run_composite_simpson():
+    print("\nComposite Simpson's Rule Results:")
+    print(f"{'N (Subdivisions)':<20}{'Result':<15}{'Time (s)':<10}")
     print("-" * 45)
     results = []
-    timings = []
-    for subdivisions in simpson_subdivisions:
-        start_time = time.time()
-        result = simpson_integration(log_loss_y1, start_range, end_range, subdivisions)
-        end_time = time.time()
+    times = []
+    for N in N_values:
+        start = time.perf_counter()
+        result = composite_simpson(log_loss_y1, a, b, N)
+        end = time.perf_counter()
         results.append(result)
-        timings.append(end_time - start_time)
-        print(f"{subdivisions:<20}{result:<15.6f}{(end_time - start_time):.8f}")
-    return results, timings
+        times.append(end - start)
+        print(f"{N:<20}{result:<15.6f}{(end - start):.8f}")
+    return results, times
 
-def execute_adaptive():
+def run_adaptive_quadrature():
     print("\nAdaptive Quadrature Results:")
     print(f"{'Tolerance':<15}{'Result':<15}{'Time (s)':<10}")
     print("-" * 40)
-    start_time = time.time()
-    result = adaptive_integration(log_loss_y1, start_range, end_range, tolerance=tolerance_level)
-    end_time = time.time()
-    computation_time = end_time - start_time
-    print(f"{tolerance_level:<15}{result:<15.6f}{computation_time:.8f}")
+    start = time.perf_counter()
+    result = adaptive_quadrature(log_loss_y1, a, b, tol=tolerance)
+    end = time.perf_counter()
+    computation_time = end - start
+    print(f"{tolerance:<15}{result:<15.6f}{computation_time:.8f}")
     return result, computation_time
 
-def execute_romberg():
+def run_romberg_experiments():
     print("\nRomberg Integration Results:")
-    print(f"{'Levels (m)':<12}{'Subdivisions (N)':<20}{'Result':<15}{'Time (s)':<10}")
+    print(f"{'m (Levels)':<12}{'N (Subdivisions)':<20}{'Result':<15}{'Time (s)':<10}")
     print("-" * 55)
     results = []
-    timings = []
-    for levels in romberg_levels:
-        start_time = time.time()
-        result = romberg_integral(log_loss_y1, start_range, end_range, max_depth=levels)
-        end_time = time.time()
-
+    times = []
+    for m in m_values:
+        start = time.perf_counter()
+        result = romberg_integration(log_loss_y1, a, b, max_levels=m)
+        end = time.perf_counter()
+        
         # Number of subdivisions is 2^(m-1)
-        subdivisions = 2**(levels - 1)
-        computation_time = end_time - start_time
+        N = 2**(m - 1)
+        computation_time = end - start
 
         results.append(result)
-        timings.append(computation_time)
-        print(f"{levels:<12}{subdivisions:<20}{result:<15.6f}{computation_time:.8f}")
-    return results, timings
+        times.append(computation_time)
+        print(f"{m:<12}{N:<20}{result:<15.6f}{computation_time:.8f}")
+    return results, times
 
 def visualize_results(simpson_results, simpson_times, adaptive_result, adaptive_time, romberg_results, romberg_times):
+    # Visualization
     plt.figure(figsize=(15, 8))
 
     # Accuracy Plot
     plt.subplot(2, 1, 1)
-    plt.plot(simpson_subdivisions, simpson_results, label="Simpson's Rule", marker='o')
-    plt.axhline(adaptive_result, color='green', linestyle='--', label="Adaptive Quadrature")
-    plt.plot(romberg_levels, romberg_results, label="Romberg Integration", marker='s')
-    plt.title("Accuracy of Integration Methods")
+    plt.plot(N_values, simpson_results, marker='o', label="Composite Simpson")
+    plt.axhline(adaptive_result, color='g', linestyle='--', label="Adaptive Quadrature")
+    plt.plot(m_values, romberg_results, marker='s', label="Romberg Integration")
     plt.xlabel("Subdivisions (N) / Levels (m)")
     plt.ylabel("Integral Value")
+    plt.title("Integral Results Comparison")
     plt.legend()
     plt.grid()
 
     # Computation Time Plot
     plt.subplot(2, 1, 2)
-    plt.plot(simpson_subdivisions, simpson_times, label="Simpson's Timing", marker='o')
-    plt.bar(["Adaptive Quadrature"], [adaptive_time], color='green', label="Adaptive Timing")
-    plt.plot(romberg_levels, romberg_times, label="Romberg Timing", marker='s')
-    plt.title("Computation Time of Methods")
+    plt.plot(N_values, simpson_times, marker='o', label="Composite Simpson")
+    plt.bar(["Adaptive Quadrature"], [adaptive_time], color='g', label="Adaptive Quadrature")
+    plt.plot(m_values, romberg_times, marker='s', label="Romberg Integration")
     plt.xlabel("Subdivisions (N) / Levels (m)")
-    plt.ylabel("Time (seconds)")
+    plt.ylabel("Computation Time (seconds)")
+    plt.title("Computation Time Comparison")
     plt.legend()
     plt.grid()
 
@@ -86,14 +87,14 @@ def visualize_results(simpson_results, simpson_times, adaptive_result, adaptive_
     plt.show()
 
 if __name__ == "__main__":
-    # Execute Simpson's Rule
-    simpson_results, simpson_times = execute_simpson()
+    # Run Composite Simpson
+    simpson_results, simpson_times = run_composite_simpson()
 
-    # Execute Adaptive Quadrature
-    adaptive_result, adaptive_time = execute_adaptive()
+    # Run Adaptive Quadrature
+    adaptive_result, adaptive_time = run_adaptive_quadrature()
 
-    # Execute Romberg Integration
-    romberg_results, romberg_times = execute_romberg()
+    # Run Romberg Integration
+    romberg_results, romberg_times = run_romberg_experiments()
 
-    # Visualize the results
+    # Visualize All Results
     visualize_results(simpson_results, simpson_times, adaptive_result, adaptive_time, romberg_results, romberg_times)

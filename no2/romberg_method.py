@@ -1,26 +1,37 @@
 import numpy as np
 
-def romberg_integral(function, lower_bound, upper_bound, max_depth=10):
-    def trapezoidal_approximation(function, lower, upper, divisions):
-        step = (upper - lower) / divisions
-        x_points = np.linspace(lower, upper, divisions + 1)
-        y_points = function(x_points)
-        return step * (y_points[0] / 2 + sum(y_points[1:-1]) + y_points[-1] / 2)
+def romberg_integration(func, a, b, max_levels=10):
+    """
+    Custom Romberg integration implementation.
+    Combines trapezoidal approximations with Richardson extrapolation.
+    """
 
-    romberg_table = np.zeros((max_depth, max_depth))
-    romberg_table[0, 0] = trapezoidal_approximation(function, lower_bound, upper_bound, 1)
+    def trapezoidal(func, a, b, n):
+        """Compute the trapezoidal rule with n intervals."""
+        h = (b - a) / n
+        x = np.linspace(a, b, n + 1)
+        y = func(x)
+        return h * (y[0] / 2 + sum(y[1:-1]) + y[-1] / 2)
 
-    for depth in range(1, max_depth):
-        interval_count = 2**depth
-        romberg_table[depth, 0] = trapezoidal_approximation(function, lower_bound, upper_bound, interval_count)
+    # Initialize Romberg table
+    R = np.zeros((max_levels, max_levels))
 
-        for level in range(1, depth + 1):
-            romberg_table[depth, level] = (
-                (4**level * romberg_table[depth, level - 1] - romberg_table[depth - 1, level - 1]) /
-                (4**level - 1)
-            )
+    # First level: Trapezoidal rule with one interval
+    R[0, 0] = trapezoidal(func, a, b, 1)
 
-        if depth > 1 and abs(romberg_table[depth, depth] - romberg_table[depth - 1, depth - 1]) < 1e-6:
-            return romberg_table[depth, depth]
+    # Fill the Romberg table
+    for k in range(1, max_levels):
+        # Trapezoidal rule with 2^k intervals
+        n_intervals = 2**k
+        R[k, 0] = trapezoidal(func, a, b, n_intervals)
 
-    return romberg_table[max_depth - 1, max_depth - 1]
+        # Richardson extrapolation
+        for j in range(1, k + 1):
+            R[k, j] = (4**j * R[k, j - 1] - R[k - 1, j - 1]) / (4**j - 1)
+
+        # Check for convergence
+        if k > 1 and abs(R[k, k] - R[k - 1, k - 1]) < 1e-6:
+            return R[k, k]
+
+    # If no convergence, return the highest accuracy result
+    return R[max_levels - 1, max_levels - 1]

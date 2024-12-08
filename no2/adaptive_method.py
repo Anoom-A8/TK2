@@ -1,20 +1,28 @@
-def adaptive_integration(function, start, end, tolerance=1e-4):
-    def trapezoid_estimate(function, start, end):
-        return (end - start) * (function(start) + function(end)) / 2
+def adaptive_quadrature(func, a, b, tol=1e-4):
+    """
+    Custom adaptive quadrature implementation.
+    Recursively divides the interval until the error is below the tolerance.
+    """
 
-    def adaptive_refine(function, start, end, tolerance, whole):
-        midpoint = (start + end) / 2
-        left_area = trapezoid_estimate(function, start, midpoint)
-        right_area = trapezoid_estimate(function, midpoint, end)
-        total_area = abs(left_area + right_area - whole)
+    def integrate(func, a, b):
+        """Estimate integral using the trapezoidal rule."""
+        return (b - a) * (func(a) + func(b)) / 2
 
-        if total_area <= 15 * tolerance:
-            return left_area + right_area + total_area / 15
+    def recursive_quad(func, a, b, tol, whole):
+        """Recursively apply the quadrature method."""
+        mid = (a + b) / 2
+        left = integrate(func, a, mid)
+        right = integrate(func, mid, b)
+        error = abs(left + right - whole)
+
+        if error <= 15 * tol:  # Scale error based on Simpson's rule estimate
+            return left + right + error / 15
         else:
-            return (
-                adaptive_refine(function, start, midpoint, tolerance / 2, left_area) +
-                adaptive_refine(function, midpoint, end, tolerance / 2, right_area)
-            )
+            # Recursively refine the intervals
+            left_result = recursive_quad(func, a, mid, tol / 2, left)
+            right_result = recursive_quad(func, mid, b, tol / 2, right)
+            return left_result + right_result
 
-    initial_estimate = trapezoid_estimate(function, start, end)
-    return adaptive_refine(function, start, end, tolerance, initial_estimate)
+    # Compute the whole integral initially
+    whole = integrate(func, a, b)
+    return recursive_quad(func, a, b, tol, whole)
